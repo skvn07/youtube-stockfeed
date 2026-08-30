@@ -42,9 +42,11 @@ from summariser import generate_summary
 load_dotenv()
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://youtube-stockfeed.github.io")
+FRONTEND_CORS_URL = os.getenv("FRONTEND_CORS_URL", "https://youtube-stockfeed.github.io")
 
 ALLOWED_ORIGINS = [
     FRONTEND_URL,
+    FRONTEND_CORS_URL,
     "http://localhost:3000",
     "http://127.0.0.1:5500",
     "null",
