@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube StockFeed</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #f4f3f0;
+      --surface:       #ffffff;
+      --surface-2:     #eeece8;
+      --border:        #e2dfd9;
+      --border-strong: #c8c4bc;
+      --text:          #17160f;
+      --text-muted:    #68655e;
+      --text-faint:    #9a9790;
+      --accent:        #1a5fa8;
+      --accent-bg:     #e8f1fb;
+      --accent-border: #b5d0f0;
+      --accent-text:   #1a5fa8;
+      --success:       #15803d;
+      --success-bg:    #dcfce7;
+      --success-border:#86efac;
+      --warning:       #92400e;
+      --warning-bg:    #fef3c7;
+      --warning-border:#fbbf24;
+      --danger:        #991b1b;
+      --danger-bg:     #fee2e2;
+      --danger-border: #fca5a5;
+      --radius:        8px;
+      --radius-lg:     12px;
+      --topbar-h:      48px;
+      --modebar-h:     44px;
+      --ch-w:          72px;
+      --feed-w:        230px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:            #17160f;
+        --surface:       #211f18;
+        --surface-2:     #2b2920;
+        --border:        #3a3830;
+        --border-strong: #4a4840;
+        --text:          #edeae2;
+        --text-muted:    #9a9790;
+        --text-faint:    #67645c;
+        --accent:        #5aabf0;
+        --accent-bg:     #152438;
+        --accent-border: #1e3d60;
+        --accent-text:   #5aabf0;
+        --success:       #4ade80;
+        --success-bg:    #14532d;
+        --success-border:#166534;
+        --warning:       #fbbf24;
+        --warning-bg:    #451a03;
+        --warning-border:#92400e;
+        --danger:        #f87171;
+        --danger-bg:     #450a0a;
+        --danger-border: #7f1d1d;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ═══════════════ LOGIN SCREEN ══════════════════════════ */
+    #loginScreen {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .login-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 36px 40px;
+      width: 360px;
+      text-align: center;
+    }
+    .login-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .login-logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent-bg);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-title { font-size: 20px; font-weight: 600; }
+    .login-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; margin-bottom: 28px; line-height: 1.5; }
+    .login-input {
+      width: 100%;
+      font-size: 14px;
+      padding: 10px 13px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      margin-bottom: 12px;
+      text-align: center;
+      letter-spacing: 0.02em;
+      transition: border-color 0.15s;
+    }
+    .login-input:focus { border-color: var(--accent); }
+    .login-btn {
+      width: 100%;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 10px;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .login-btn:hover { opacity: 0.88; }
+    .login-note { font-size: 11px; color: var(--text-faint); margin-top: 14px; line-height: 1.5; }
+
+    /* ═══════════════ TOP BAR ═══════════════════════════════ */
+    .topbar {
+      height: var(--topbar-h);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 600;
+    }
+    .brand-icon {
+      width: 26px; height: 26px;
+      background: var(--accent-bg);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .topbar-user {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 3px 9px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .spacer { flex: 1; }
+
+    /* Mode buttons */
+    .mode-btns { display: flex; gap: 4px; }
+    .mode-btn {
+      font-size: 12px; font-weight: 500;
+      padding: 6px 13px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 5px;
+      transition: all 0.12s;
+      white-space: nowrap;
+    }
+    .mode-btn:hover { background: var(--surface-2); color: var(--text); }
+    .mode-btn.active {
+      background: var(--accent-bg);
+      border-color: var(--accent-border);
+      color: var(--accent-text);
+    }
+
+    /* ═══════════════ BODY ══════════════════════════════════ */
+    #appBody { display: flex; flex: 1; overflow: hidden; }
+
+    /* ═══════════════ CHANNEL COLUMN ════════════════════════ */
+    .ch-col {
+      width: var(--ch-w);
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .ch-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .ch-dot {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s;
+      border: 2px solid transparent;
+    }
+    .ch-dot:hover { transform: scale(1.08); }
+    .ch-dot.active { border-color: currentColor; outline: 2px solid var(--accent-border); outline-offset: 2px; }
+    .ch-label {
+      font-size: 9px; color: var(--text-faint);
+      text-align: center; max-width: 64px;
+      line-height: 1.3; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .ch-add {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1.5px dashed var(--border-strong);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-faint); font-size: 20px;
+      cursor: pointer; margin-top: 4px;
+      transition: all 0.12s;
+    }
+    .ch-add:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ═══════════════ MIDDLE — VIDEO FEED ═══════════════════ */
+    .feed-col {
+      width: var(--feed-w);
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .feed-head {
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .feed-ch-name {
+      font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .feed-ch-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .feed-sub { font-size: 10px; color: var(--text-faint); margin-top: 2px; }
+    .feed-list { overflow-y: auto; flex: 1; }
+    .feed-list::-webkit-scrollbar { width: 3px; }
+    .feed-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+    .vid-item {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.1s;
+      position: relative;
+    }
+    .vid-item:hover { background: var(--surface-2); }
+    .vid-item.active { background: var(--accent-bg); border-left: 2px solid var(--accent-text); padding-left: 10px; }
+    .vid-thumb {
+      width: 100%; aspect-ratio: 16/9;
+      border-radius: 5px; overflow: hidden;
+      margin-bottom: 7px; background: var(--surface-2);
+    }
+    .vid-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .vid-title {
+      font-size: 11.5px; font-weight: 500; line-height: 1.38;
+      color: var(--text);
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .vid-item.active .vid-title { color: var(--accent-text); }
+    .vid-meta { font-size: 10px; color: var(--text-faint); margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+    .vid-saved-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 10px; padding: 1px 5px;
+      background: var(--success-bg); color: var(--success);
+      border: 1px solid var(--success-border);
+      border-radius: 4px; font-weight: 500;
+    }
+    .feed-msg { padding: 20px 14px; font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
+    .skel-item { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .skel {
+      border-radius: 5px;
+      background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.3s infinite;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+    .skel-thumb { width: 100%; aspect-ratio: 16/9; margin-bottom: 7px; }
+    .skel-line { height: 10px; margin-bottom: 5px; }
+    .skel-line.short { width: 60%; }
+
+    /* ═══════════════ RIGHT — ANALYSIS ══════════════════════ */
+    .analysis-col {
+      flex: 1; overflow-y: auto;
+      background: var(--bg);
+      display: flex; flex-direction: column;
+    }
+    .analysis-col::-webkit-scrollbar { width: 4px; }
+    .analysis-col::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+    /* Welcome / empty */
+    .empty-state {
+      max-width: 440px; margin: 50px auto; padding: 0 24px; text-align: center;
+    }
+    .empty-state h2 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .empty-state p { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
+
+    /* Analysis detail */
+    .analysis-inner { max-width: 660px; padding: 22px 26px; }
+    .a-source-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 10px; font-weight: 500; padding: 2px 8px;
+      border: 1px solid var(--border); border-radius: 20px;
+      background: var(--surface); color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .a-title { font-size: 17px; font-weight: 600; line-height: 1.4; margin-bottom: 10px; }
+    .a-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--text-muted); margin-bottom: 16px; }
+    .ch-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 20px;
+      border: 1px solid var(--border); background: var(--surface);
+      font-size: 10px; font-weight: 500;
+    }
+    .sentiment-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+      text-transform: uppercase; margin-bottom: 16px;
+    }
+    .s-bullish  { background:var(--success-bg);  color:var(--success);  border:1px solid var(--success-border);  }
+    .s-cautious { background:var(--warning-bg);  color:var(--warning);  border:1px solid var(--warning-border);  }
+    .s-bearish  { background:var(--danger-bg);   color:var(--danger);   border:1px solid var(--danger-border);   }
+    .s-neutral  { background:var(--surface-2);   color:var(--text-muted); border:1px solid var(--border-strong); }
+
+    .section-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+    }
+    .sec-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--text-faint);
+      margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    }
+    .ai-badge {
+      background: var(--accent-bg); color: var(--accent-text);
+      border: 1px solid var(--accent-border);
+      border-radius: 4px; font-size: 9px; padding: 1px 5px; font-weight: 600;
+    }
+
+    .takeaway-row { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+    .takeaway-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .tk-key { font-weight: 500; color: var(--text); min-width: 100px; flex-shrink: 0; font-size: 12px; }
+    .tk-val { color: var(--text-muted); line-height: 1.55; }
+
+    .stock-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .stock-table th { text-align: left; font-size: 10px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; color: var(--text-faint); padding: 6px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+    .stock-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-muted); }
+    .stock-table tr:last-child td { border-bottom: none; }
+    .ticker { font-weight: 600; color: var(--text); font-size: 12.5px; }
+    .act-buy   { color: var(--success); font-weight: 500; }
+    .act-sell  { color: var(--danger);  font-weight: 500; }
+    .act-hold  { color: var(--warning); font-weight: 500; }
+    .act-watch { color: var(--accent-text); font-weight: 500; }
+
+    .theme-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .theme-tag { padding: 4px 10px; border-radius: 20px; font-size: 11px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted); }
+
+    .action-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+    .btn-save {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500;
+      padding: 8px 14px; border-radius: var(--radius);
+      background: var(--success-bg); color: var(--success);
+      border: 1px solid var(--success-border); cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .btn-save:hover { opacity: 0.8; }
+    .btn-remove {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500;
+      padding: 8px 14px; border-radius: var(--radius);
+      background: var(--danger-bg); color: var(--danger);
+      border: 1px solid var(--danger-border); cursor: pointer;
+      transition: opacity 0.12s;
+    }
+    .btn-remove:hover { opacity: 0.8; }
+    .btn-watch {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500;
+      padding: 8px 14px; border-radius: var(--radius);
+      background: var(--accent-bg); color: var(--accent-text);
+      border: 1px solid var(--accent-border); cursor: pointer;
+      text-decoration: none; transition: opacity 0.12s;
+    }
+    .btn-watch:hover { opacity: 0.8; }
+
+    /* Loading dots */
+    .dots { display: inline-flex; gap: 4px; align-items: center; vertical-align: middle; }
+    .dots span { width: 5px; height: 5px; border-radius: 50%; background: var(--text-faint); animation: blink 1.2s infinite; }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+    /* ═══════════════ JOURNAL VIEW ══════════════════════════ */
+    .journal-wrap { flex: 1; overflow-y: auto; padding: 22px 26px; }
+    .journal-wrap::-webkit-scrollbar { width: 4px; }
+    .journal-wrap::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+    .journal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .journal-title { font-size: 16px; font-weight: 600; }
+    .journal-count { font-size: 12px; color: var(--text-muted); }
+    .btn-clear-all {
+      font-size: 11px; padding: 5px 11px;
+      border: 1px solid var(--danger-border);
+      border-radius: var(--radius);
+      background: var(--danger-bg); color: var(--danger);
+      cursor: pointer; transition: opacity 0.12s;
+    }
+    .btn-clear-all:hover { opacity: 0.8; }
+
+    .date-group { margin-bottom: 22px; }
+    .date-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--text-faint);
+      padding-bottom: 8px; border-bottom: 1px solid var(--border);
+      margin-bottom: 10px;
+    }
+    .journal-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 14px 16px;
+      margin-bottom: 10px; cursor: pointer;
+      transition: border-color 0.12s;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .journal-card:hover { border-color: var(--accent-border); }
+    .journal-thumb {
+      width: 72px; height: 40px; border-radius: 5px;
+      overflow: hidden; flex-shrink: 0; background: var(--surface-2);
+    }
+    .journal-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .journal-body { flex: 1; min-width: 0; }
+    .journal-top { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+    .journal-title-text { font-size: 12.5px; font-weight: 500; line-height: 1.35; margin-bottom: 5px; color: var(--text); }
+    .journal-digest { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .journal-actions { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+    .btn-open {
+      font-size: 11px; padding: 3px 9px;
+      border: 1px solid var(--accent-border);
+      border-radius: var(--radius);
+      background: var(--accent-bg); color: var(--accent-text);
+      cursor: pointer; transition: opacity 0.12s;
+    }
+    .btn-open:hover { opacity: 0.8; }
+    .btn-del {
+      font-size: 11px; padding: 3px 9px;
+      border: 1px solid var(--danger-border);
+      border-radius: var(--radius);
+      background: transparent; color: var(--danger);
+      cursor: pointer; transition: opacity 0.12s;
+    }
+    .btn-del:hover { opacity: 0.8; }
+
+    /* ═══════════════ MODAL (add channel) ═══════════════════ */
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 26px 28px; width: 380px; max-width: 92vw;
+    }
+    .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .modal p { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin-bottom: 16px; }
+    .modal input {
+      width: 100%; font-size: 13px; padding: 8px 11px;
+      border: 1px solid var(--border-strong); border-radius: var(--radius);
+      background: var(--bg); color: var(--text);
+      margin-bottom: 10px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .modal input:focus { border-color: var(--accent); }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-cancel { font-size: 12px; padding: 7px 13px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); cursor: pointer; }
+    .btn-primary { font-size: 12px; padding: 7px 14px; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; cursor: pointer; }
+    .btn-primary:hover { opacity: 0.88; }
+
+    /* ═══════════════ TOAST ══════════════════════════════════ */
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--text); color: var(--bg);
+      font-size: 13px; padding: 10px 16px;
+      border-radius: var(--radius); z-index: 300;
+      opacity: 0; transform: translateY(8px);
+      transition: all 0.2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <span style="font-size:17px;font-weight:600">YouTube StockFeed</span>
+    </div>
+    <div class="login-sub">Your personal AI-powered finance video digest. Enter a username to get started.</div>
+    <input class="login-input" id="usernameInput" type="text" placeholder="Choose a username (e.g. john)" maxlength="30" autocomplete="off" />
+    <button class="login-btn" onclick="login()">Continue →</button>
+    <div class="login-note">No password needed. Your username is saved in this browser. Each person gets their own private feed.</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════════════════════ -->
+<header class="topbar" id="topbar" style="display:none">
+  <div class="topbar-brand">
+    <div class="brand-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+    </div>
+    YouTube StockFeed
+  </div>
+  <span class="topbar-user" id="topbarUser"></span>
+  <div class="spacer"></div>
+  <div class="mode-btns">
+    <button class="mode-btn active" id="btnLive" onclick="setMode('live')">🌐 Live</button>
+    <button class="mode-btn" id="btnSaved" onclick="setMode('saved')">💾 Saved</button>
+    <button class="mode-btn" id="btnJournal" onclick="setMode('journal')">📋 Summary</button>
+  </div>
+</header>
+
+<div id="appBody" style="display:none">
+
+  <!-- Channel column -->
+  <div class="ch-col" id="channelCol"></div>
+
+  <!-- Video feed -->
+  <div class="feed-col">
+    <div class="feed-head">
+      <div class="feed-ch-name" id="feedChName">
+        <span class="feed-ch-dot" id="feedChDot"></span>
+        <span id="feedChLabel">Select a channel</span>
+      </div>
+      <div class="feed-sub" id="feedSub"></div>
+    </div>
+    <div class="feed-list" id="feedList">
+      <div class="feed-msg">Select a channel from the left to load videos.</div>
+    </div>
+  </div>
+
+  <!-- Analysis panel -->
+  <div class="analysis-col" id="analysisCol">
+    <div class="empty-state">
+      <h2>Welcome to YouTube StockFeed</h2>
+      <p>Select a channel on the left, then click any video to get an AI-generated summary. Save analyses you want to keep — they'll appear in your Summary journal.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Add channel modal -->
+<div class="modal-bg" id="addModal" onclick="closeModalBg(event)">
+  <div class="modal">
+    <h3>Add a channel</h3>
+    <p>Enter the YouTube channel ID (starts with UC…). Find it at <a href="https://commentpicker.com/youtube-channel-id.php" target="_blank" rel="noopener" style="color:var(--accent-text)">commentpicker.com</a>.</p>
+    <input type="text" id="newChId" placeholder="UCxxxxxxxxxxxxxxxxxxxxxxxx" />
+    <input type="text" id="newChName" placeholder="Channel name (e.g. My Finance Channel)" />
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="addChannel()">Add channel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIG — update BACKEND_URL after Render deployment
+════════════════════════════════════════════════════════════ */
+const BACKEND_URL = 'https://youtube-stockfeed-api.onrender.com'; // ← update after deploy
+
+/* ════════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════════ */
+let userId = null;
+let channels = [];
+let activeChannelIdx = 0;
+let currentVideos = [];
+let currentMode = 'live';
+let currentSummary = null;
+let currentVideoData = null;
+let savedVideoIds = new Set();
+
+const CHANNEL_COLORS = ['#c2410c','#b91c1c','#047857','#1d4ed8','#7c3aed','#be185d','#0e7490'];
+
+/* ════════════════════════════════════════════════════════════
+   LOGIN
+════════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('ysf_user_id');
+  if (saved) loginAs(saved);
+  document.getElementById('usernameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+  });
+});
+
+async function login() {
+  const val = document.getElementById('usernameInput').value.trim().toLowerCase();
+  if (!val || val.length < 2) { alert('Please enter a username of at least 2 characters.'); return; }
+  await loginAs(val);
+}
+
+async function loginAs(uid) {
+  try {
+    const res = await api('POST', '/api/users', { user_id: uid });
+    userId = uid;
+    localStorage.setItem('ysf_user_id', uid);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('topbar').style.display = 'flex';
+    document.getElementById('appBody').style.display = 'flex';
+    document.getElementById('topbarUser').textContent = uid;
+    await loadChannels();
+    await loadSavedIds();
+  } catch (e) {
+    alert('Could not connect to the server. Please try again.');
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   CHANNELS
+════════════════════════════════════════════════════════════ */
+async function loadChannels() {
+  channels = await api('GET', `/api/users/${userId}/channels`);
+  renderChannelCol();
+  if (channels.length > 0) {
+    selectChannel(0);
+  }
+}
+
+function renderChannelCol() {
+  const col = document.getElementById('channelCol');
+  let html = channels.map((ch, i) => `
+    <div class="ch-wrap">
+      <div class="ch-dot ${i === activeChannelIdx ? 'active' : ''}"
+           style="background:${ch.color}22;color:${ch.color}"
+           onclick="selectChannel(${i})"
+           title="${esc(ch.name)}">
+        ${initials(ch.short_name)}
+      </div>
+      <span class="ch-label">${esc(ch.short_name)}</span>
+    </div>
+  `).join('');
+  html += `<div class="ch-add" onclick="openModal()" title="Add channel">+</div>`;
+  col.innerHTML = html;
+}
+
+function selectChannel(idx) {
+  activeChannelIdx = idx;
+  renderChannelCol();
+  const ch = channels[idx];
+  document.getElementById('feedChDot').style.background = ch.color;
+  document.getElementById('feedChLabel').textContent = ch.name;
+  document.getElementById('feedSub').textContent = '';
+  if (currentMode === 'live') loadVideos(ch.channel_id);
+  else if (currentMode === 'saved') loadSaved();
+}
+
+/* ════════════════════════════════════════════════════════════
+   MODES
+════════════════════════════════════════════════════════════ */
+function setMode(mode) {
+  currentMode = mode;
+  ['live','saved','journal'].forEach(m => {
+    document.getElementById('btn' + m.charAt(0).toUpperCase() + m.slice(1))
+      .classList.toggle('active', m === mode);
+  });
+  setAnalysisEmpty();
+  if (mode === 'live') {
+    document.getElementById('channelCol').style.display = 'flex';
+    document.getElementById('feedSub').textContent = '';
+    if (channels[activeChannelIdx]) loadVideos(channels[activeChannelIdx].channel_id);
+  } else if (mode === 'saved') {
+    document.getElementById('channelCol').style.display = 'flex';
+    loadSaved();
+  } else if (mode === 'journal') {
+    document.getElementById('channelCol').style.display = 'none';
+    loadJournal();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   LIVE VIDEOS
+════════════════════════════════════════════════════════════ */
+async function loadVideos(channelId) {
+  setFeedSkeleton();
+  try {
+    const data = await api('GET', `/api/channels/${channelId}/videos`);
+    currentVideos = data.videos || [];
+    document.getElementById('feedSub').textContent = `${currentVideos.length} videos`;
+    renderFeedList(currentVideos);
+  } catch (e) {
+    document.getElementById('feedList').innerHTML =
+      `<div class="feed-msg">Error loading videos: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderFeedList(videos) {
+  if (!videos.length) {
+    document.getElementById('feedList').innerHTML = '<div class="feed-msg">No videos found.</div>';
+    return;
+  }
+  const html = videos.map((v, i) => {
+    const isSaved = savedVideoIds.has(v.video_id);
+    const ago = timeAgo(v.published_at);
+    return `<div class="vid-item" id="vi-${i}" data-idx="${i}" onclick="selectVideo(${i})">
+      ${isSaved ? '<span class="vid-saved-badge">💾 saved</span>' : ''}
+      <div class="vid-thumb">
+        ${v.thumbnail_url ? `<img src="${esc(v.thumbnail_url)}" alt="" loading="lazy">` : ''}
+      </div>
+      <div class="vid-title">${esc(v.title)}</div>
+      <div class="vid-meta"><span>${ago}</span></div>
+    </div>`;
+  }).join('');
+  document.getElementById('feedList').innerHTML = html;
+}
+
+async function selectVideo(idx) {
+  const v = currentVideos[idx];
+  if (!v) return;
+  document.querySelectorAll('.vid-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.idx === String(idx))
+  );
+  currentVideoData = v;
+  currentSummary = null;
+  const isSaved = savedVideoIds.has(v.video_id);
+  const ch = channels[activeChannelIdx];
+  showAnalysisLoading(v, ch, isSaved);
+
+  // Check DB first
+  try {
+    const cached = await api('GET', `/api/videos/${v.video_id}/summary?user_id=${userId}`);
+    currentSummary = cached;
+    renderAnalysis(v, ch, cached, isSaved, true);
+    return;
+  } catch {}
+
+  // Generate fresh
+  try {
+    const fresh = await api('POST', `/api/videos/${v.video_id}/summary/generate`, {
+      user_id: userId,
+      title: v.title,
+      description: v.description || '',
+    });
+    currentSummary = fresh;
+    renderAnalysis(v, ch, fresh, isSaved, false);
+  } catch (e) {
+    document.getElementById('analysisCol').innerHTML =
+      `<div class="analysis-inner"><p style="color:var(--danger)">Failed to generate summary: ${esc(e.message)}</p></div>`;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RENDER ANALYSIS
+════════════════════════════════════════════════════════════ */
+function showAnalysisLoading(v, ch, isSaved) {
+  document.getElementById('analysisCol').innerHTML = `
+    <div class="analysis-inner">
+      <div class="a-source-badge">${isSaved ? '💾 Loaded from saved' : '⚡ Live summary'}</div>
+      <div class="a-title">${esc(v.title)}</div>
+      <div class="a-meta">
+        <span class="ch-tag"><span style="width:7px;height:7px;border-radius:50%;background:${ch.color};display:inline-block"></span>${esc(ch.short_name)}</span>
+        <span>${timeAgo(v.published_at)}</span>
+      </div>
+      <div style="color:var(--text-faint);font-size:13px;margin-top:20px">
+        Generating summary&nbsp;<span class="dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>`;
+}
+
+function renderAnalysis(v, ch, summary, isSaved, fromCache) {
+  const sentiment = summary.sentiment || 'neutral';
+  const sentimentLabel = { bullish:'📈 Bullish', cautious:'⚠️ Cautious', bearish:'📉 Bearish', neutral:'➖ Neutral' }[sentiment] || sentiment;
+  const sentimentClass = `s-${sentiment}`;
+  const takeaways = summary.takeaways || {};
+  const type = summary.type || 'macro';
+
+  let takeawayHTML = Object.entries(takeaways).map(([k, v]) =>
+    `<div class="takeaway-row"><span class="tk-key">${cap(k)}</span><span class="tk-val">${esc(v)}</span></div>`
+  ).join('');
+
+  let stocksHTML = '';
+  if (type === 'stock' && summary.stocks?.length) {
+    stocksHTML = `
+      <div class="section-card">
+        <div class="sec-label">Stock signals</div>
+        <table class="stock-table">
+          <thead><tr><th>Ticker</th><th>Action</th><th>Entry</th><th>Stop loss</th></tr></thead>
+          <tbody>
+            ${summary.stocks.map(s => `
+              <tr>
+                <td><span class="ticker">${esc(s.ticker)}</span></td>
+                <td><span class="act-${(s.action||'').toLowerCase()}">${esc(s.action)}</span></td>
+                <td>${esc(s.entry || '—')}</td>
+                <td>${esc(s.stop_loss || '—')}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+        <div style="font-size:10px;color:var(--text-faint);margin-top:8px;font-style:italic">Extracted from video commentary. Not financial advice.</div>
+      </div>`;
+  }
+
+  let themesHTML = '';
+  if (type === 'macro' && summary.themes?.length) {
+    themesHTML = `
+      <div class="section-card">
+        <div class="sec-label">Themes</div>
+        <div class="theme-tags">${summary.themes.map(t => `<span class="theme-tag">${esc(t)}</span>`).join('')}</div>
+      </div>`;
+  }
+
+  const saveBtn = isSaved
+    ? `<button class="btn-remove" onclick="unsaveVideo('${v.video_id}')">🗑 Remove from saved</button>`
+    : `<button class="btn-save" onclick="saveAnalysis()">💾 Save this analysis</button>`;
+
+  document.getElementById('analysisCol').innerHTML = `
+    <div class="analysis-inner">
+      <div class="a-source-badge">${fromCache ? '💾 Loaded from saved' : '⚡ Live summary'}</div>
+      <div class="a-title">${esc(v.title)}</div>
+      <div class="a-meta">
+        <span class="ch-tag">
+          <span style="width:7px;height:7px;border-radius:50%;background:${ch.color};display:inline-block"></span>
+          ${esc(ch.short_name)}
+        </span>
+        <span>${timeAgo(v.published_at)}</span>
+        <a class="btn-watch" href="https://www.youtube.com/watch?v=${esc(v.video_id)}" target="_blank" rel="noopener">
+          <svg width="11" height="8" viewBox="0 0 36 26"><rect width="36" height="26" rx="5" fill="#e00"/><polygon points="14,7 14,19 26,13" fill="#fff"/></svg>
+          Watch
+        </a>
+      </div>
+
+      <span class="sentiment-badge ${sentimentClass}">${sentimentLabel}</span>
+
+      <div class="section-card">
+        <div class="sec-label">Key takeaways <span class="ai-badge">Claude</span></div>
+        ${takeawayHTML}
+      </div>
+
+      ${stocksHTML}
+      ${themesHTML}
+
+      <div class="action-row">
+        ${saveBtn}
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   SAVE / UNSAVE
+════════════════════════════════════════════════════════════ */
+async function saveAnalysis() {
+  if (!currentVideoData || !currentSummary) return;
+  const ch = channels[activeChannelIdx];
+  try {
+    await api('POST', '/api/saved', {
+      user_id: userId,
+      video: {
+        video_id: currentVideoData.video_id,
+        channel_id: currentVideoData.channel_id || ch.channel_id,
+        channel_name: ch.name,
+        title: currentVideoData.title,
+        thumbnail_url: currentVideoData.thumbnail_url || '',
+        published_at: currentVideoData.published_at || '',
+      },
+      summary: currentSummary,
+    });
+    savedVideoIds.add(currentVideoData.video_id);
+    renderAnalysis(currentVideoData, ch, currentSummary, true, true);
+    // Update saved badge in feed list
+    document.querySelectorAll('.vid-item.active .vid-saved-badge').forEach(el => el.remove());
+    const activeItem = document.querySelector('.vid-item.active');
+    if (activeItem && !activeItem.querySelector('.vid-saved-badge')) {
+      const badge = document.createElement('span');
+      badge.className = 'vid-saved-badge';
+      badge.textContent = '💾 saved';
+      activeItem.prepend(badge);
+    }
+    toast('Analysis saved ✓');
+  } catch (e) {
+    toast('Save failed: ' + e.message);
+  }
+}
+
+async function unsaveVideo(videoId) {
+  try {
+    await api('DELETE', `/api/users/${userId}/saved/${videoId}`);
+    savedVideoIds.delete(videoId);
+    if (currentVideoData) renderAnalysis(currentVideoData, channels[activeChannelIdx], currentSummary, false, false);
+    document.querySelectorAll('.vid-item.active .vid-saved-badge').forEach(el => el.remove());
+    toast('Removed from saved');
+  } catch (e) {
+    toast('Remove failed: ' + e.message);
+  }
+}
+
+async function loadSavedIds() {
+  try {
+    const data = await api('GET', `/api/users/${userId}/saved`);
+    savedVideoIds = new Set((data.saved || []).map(v => v.video_id));
+  } catch {}
+}
+
+/* ════════════════════════════════════════════════════════════
+   SAVED MODE
+════════════════════════════════════════════════════════════ */
+async function loadSaved() {
+  setFeedSkeleton();
+  document.getElementById('feedChLabel').textContent = 'Saved videos';
+  document.getElementById('feedChDot').style.background = 'var(--accent-text)';
+  try {
+    const data = await api('GET', `/api/users/${userId}/saved`);
+    const saved = data.saved || [];
+    document.getElementById('feedSub').textContent = `${saved.length} saved`;
+    currentVideos = saved.map(s => ({
+      video_id: s.video_id,
+      channel_id: s.channel_id,
+      title: s.title,
+      thumbnail_url: s.thumbnail_url,
+      published_at: s.saved_at,
+      description: '',
+    }));
+    if (!saved.length) {
+      document.getElementById('feedList').innerHTML = '<div class="feed-msg">No saved analyses yet. Browse in Live mode and click "Save this analysis".</div>';
+      return;
+    }
+    const html = saved.map((v, i) => `
+      <div class="vid-item" data-idx="${i}" onclick="selectSavedVideo(${i})">
+        <span class="vid-saved-badge">💾</span>
+        <div class="vid-thumb">
+          ${v.thumbnail_url ? `<img src="${esc(v.thumbnail_url)}" alt="" loading="lazy">` : ''}
+        </div>
+        <div class="vid-title">${esc(v.title)}</div>
+        <div class="vid-meta"><span>${esc(v.channel_name)}</span> · <span>Saved ${timeAgo(v.saved_at)}</span></div>
+      </div>`).join('');
+    document.getElementById('feedList').innerHTML = html;
+  } catch (e) {
+    document.getElementById('feedList').innerHTML = `<div class="feed-msg">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+async function selectSavedVideo(idx) {
+  const v = currentVideos[idx];
+  if (!v) return;
+  document.querySelectorAll('.vid-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.idx === String(idx))
+  );
+  currentVideoData = v;
+  const ch = channels.find(c => c.channel_id === v.channel_id) || { name: 'Unknown', short_name: 'Unknown', color: '#888' };
+  showAnalysisLoading(v, ch, true);
+  try {
+    const cached = await api('GET', `/api/videos/${v.video_id}/summary?user_id=${userId}`);
+    currentSummary = cached;
+    renderAnalysis(v, ch, cached, true, true);
+  } catch {
+    document.getElementById('analysisCol').innerHTML = '<div class="analysis-inner"><p style="color:var(--text-muted)">Summary not found.</p></div>';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   JOURNAL MODE
+════════════════════════════════════════════════════════════ */
+async function loadJournal() {
+  document.getElementById('feedChLabel').textContent = 'Summary journal';
+  document.getElementById('feedChDot').style.background = 'var(--accent-text)';
+  document.getElementById('feedSub').textContent = '';
+  document.getElementById('feedList').innerHTML = '<div class="feed-msg">See your journal →</div>';
+
+  try {
+    const data = await api('GET', `/api/users/${userId}/journal`);
+    const journal = data.journal || [];
+    if (!journal.length) {
+      document.getElementById('analysisCol').innerHTML = `
+        <div class="empty-state">
+          <h2>📋 Your journal is empty</h2>
+          <p>Save video analyses in Live mode and they'll appear here as a date-stamped digest.</p>
+        </div>`;
+      return;
+    }
+    let html = `
+      <div class="journal-wrap">
+        <div class="journal-header">
+          <div>
+            <div class="journal-title">📋 Summary Journal</div>
+            <div class="journal-count">${data.total} saved analyses</div>
+          </div>
+          <button class="btn-clear-all" onclick="clearAll()">🗑 Clear all</button>
+        </div>`;
+    journal.forEach(group => {
+      const dateStr = formatDate(group.date);
+      html += `<div class="date-group"><div class="date-label">${dateStr}</div>`;
+      group.entries.forEach(entry => {
+        const sentimentClass = `s-${entry.sentiment || 'neutral'}`;
+        const sentimentLabel = { bullish:'📈 Bullish', cautious:'⚠️ Cautious', bearish:'📉 Bearish', neutral:'➖ Neutral' }[entry.sentiment] || '➖';
+        html += `
+          <div class="journal-card" onclick="openFromJournal('${esc(entry.video_id)}')">
+            <div class="journal-thumb">
+              ${entry.thumbnail_url ? `<img src="${esc(entry.thumbnail_url)}" alt="" loading="lazy">` : ''}
+            </div>
+            <div class="journal-body">
+              <div class="journal-top">
+                <span class="sentiment-badge ${sentimentClass}" style="font-size:10px;padding:2px 8px">${sentimentLabel}</span>
+                <span style="font-size:10px;color:var(--text-faint)">${esc(entry.channel_name || '')}</span>
+              </div>
+              <div class="journal-title-text">${esc(entry.title)}</div>
+              <div class="journal-digest">${esc(entry.digest || 'No digest available.')}</div>
+              <div class="journal-actions">
+                <button class="btn-open" onclick="event.stopPropagation();openFromJournal('${esc(entry.video_id)}')">Open →</button>
+                <button class="btn-del" onclick="event.stopPropagation();removeFromJournal('${esc(entry.video_id)}')">Remove</button>
+              </div>
+            </div>
+          </div>`;
+      });
+      html += '</div>';
+    });
+    html += '</div>';
+    document.getElementById('analysisCol').innerHTML = html;
+  } catch (e) {
+    document.getElementById('analysisCol').innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Error loading journal: ${esc(e.message)}</p></div>`;
+  }
+}
+
+async function openFromJournal(videoId) {
+  setMode('saved');
+  // small delay to let saved mode load
+  setTimeout(async () => {
+    const idx = currentVideos.findIndex(v => v.video_id === videoId);
+    if (idx >= 0) selectSavedVideo(idx);
+  }, 600);
+}
+
+async function removeFromJournal(videoId) {
+  if (!confirm('Remove this analysis from your journal?')) return;
+  await unsaveVideo(videoId);
+  loadJournal();
+}
+
+async function clearAll() {
+  if (!confirm('Clear ALL saved analyses? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/api/users/${userId}/saved`);
+    savedVideoIds.clear();
+    toast('All saved analyses cleared');
+    loadJournal();
+  } catch (e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ADD CHANNEL MODAL
+════════════════════════════════════════════════════════════ */
+function openModal() { document.getElementById('addModal').classList.add('open'); document.getElementById('newChId').focus(); }
+function closeModal() {
+  document.getElementById('addModal').classList.remove('open');
+  document.getElementById('newChId').value = '';
+  document.getElementById('newChName').value = '';
+}
+function closeModalBg(e) { if (e.target === document.getElementById('addModal')) closeModal(); }
+
+async function addChannel() {
+  const id = document.getElementById('newChId').value.trim();
+  const name = document.getElementById('newChName').value.trim() || 'New Channel';
+  if (!id.startsWith('UC') || id.length < 10) { alert('Please enter a valid channel ID (starts with UC…).'); return; }
+  const color = CHANNEL_COLORS[channels.length % CHANNEL_COLORS.length];
+  try {
+    await api('POST', `/api/users/${userId}/channels`, { channel_id: id, name, short_name: name.split(' ').slice(0,2).join(' '), color });
+    await loadChannels();
+    closeModal();
+    toast('Channel added ✓');
+  } catch (e) {
+    alert('Error adding channel: ' + e.message);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════════ */
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BACKEND_URL + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+function setFeedSkeleton() {
+  document.getElementById('feedList').innerHTML = Array(5).fill(`
+    <div class="skel-item">
+      <div class="skel skel-thumb"></div>
+      <div class="skel skel-line" style="width:90%"></div>
+      <div class="skel skel-line short"></div>
+    </div>`).join('');
+}
+
+function setAnalysisEmpty() {
+  document.getElementById('analysisCol').innerHTML = `
+    <div class="empty-state">
+      <h2>YouTube StockFeed</h2>
+      <p>Select a video to see an AI-generated summary.</p>
+    </div>`;
+}
+
+function initials(name) {
+  const words = name.trim().split(/\s+/);
+  return words.length >= 2 ? words[0][0] + words[1][0] : name.slice(0, 2);
+}
+
+function cap(str) { return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' '); }
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgo(iso) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function formatDate(dateStr) {
+  try {
+    return new Date(dateStr).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  } catch { return dateStr; }
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
