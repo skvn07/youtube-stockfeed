@@ -1,5 +1,5 @@
 """
-summariser.py — Claude API summarisation
+summariser.py — Google Gemini 2.5 Flash summarisation (free tier)
 Auto-detects stock vs macro videos and returns structured JSON + digest.
 """
 
@@ -10,15 +10,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
 
 async def generate_summary(title: str, description: str) -> dict:
     """
-    Generate a structured AI summary for a video.
+    Generate a structured AI summary for a video using Gemini 2.5 Flash.
     Auto-detects type: 'stock' or 'macro'.
-    Returns: { type, sentiment, digest, takeaways, stocks (if stock type), themes (if macro) }
+    Returns: { type, sentiment, digest, takeaways, stocks (stock) or themes (macro) }
     """
 
     prompt = f"""You are an expert finance analyst summarising YouTube videos for busy investors.
@@ -29,7 +29,7 @@ Video title: "{title}"
 Video description: "{description[:1200]}"
 
 Determine the video type:
-- "stock" → focuses on specific companies/tickers/earnings
+- "stock" → focuses on specific companies, tickers, earnings, or valuations
 - "macro" → focuses on economy, interest rates, inflation, global events, general investing
 
 Return this exact JSON structure:
@@ -67,26 +67,31 @@ For MACRO type:
 
 Respond with ONLY the JSON. No other text."""
 
+    payload = {
+        "contents": [
+            {
+                "parts": [{"text": prompt}]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 1000,
+        }
+    }
+
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            ANTHROPIC_URL,
-            headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": "claude-sonnet-4-6",
-                "max_tokens": 1000,
-                "messages": [{"role": "user", "content": prompt}],
-            },
+            f"{GEMINI_URL}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json=payload,
         )
         data = resp.json()
 
-    raw_text = ""
-    for block in data.get("content", []):
-        if block.get("type") == "text":
-            raw_text += block.get("text", "")
+    # Extract text from Gemini response structure
+    try:
+        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+    except (KeyError, IndexError):
+        raw_text = ""
 
     # Strip any accidental markdown fences
     raw_text = raw_text.strip()
@@ -99,7 +104,7 @@ Respond with ONLY the JSON. No other text."""
     try:
         result = json.loads(raw_text)
     except json.JSONDecodeError:
-        # Fallback if Claude returns something unexpected
+        # Fallback if response is unexpected
         result = {
             "type": "macro",
             "sentiment": "neutral",

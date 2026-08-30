@@ -41,7 +41,7 @@ from summariser import generate_summary
 
 load_dotenv()
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://skvn07.github.io")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://youtube-stockfeed.github.io")
 
 ALLOWED_ORIGINS = [
     FRONTEND_URL,

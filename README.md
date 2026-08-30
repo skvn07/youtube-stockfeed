@@ -2,7 +2,7 @@
 
 AI-powered YouTube finance video digest. Browse channels, get Claude-generated summaries, save analyses to your personal journal.
 
-**Live URL:** https://skvn07.github.io  
+**Live URL:** https://youtube-stockfeed.github.io  
 **Stack:** GitHub Pages + Render (FastAPI) + Turso (SQLite) — **£0/month**
 
 ---
@@ -57,9 +57,9 @@ youtube-stockfeed/
 
 ## Step 2 — Push code to GitHub
 
-1. Create a new repo named exactly: `skvn07.github.io`
+1. Create a new repo named exactly: `youtube-stockfeed.github.io`
    - Go to github.com → New repository
-   - Name: `skvn07.github.io`
+   - Name: `youtube-stockfeed.github.io`
    - Set to **Public**
    - Do NOT initialise with README
 
@@ -70,14 +70,14 @@ youtube-stockfeed/
    git add .
    git commit -m "Initial commit"
    git branch -M main
-   git remote add origin https://github.com/skvn07/skvn07.github.io.git
+   git remote add origin https://github.com/skvn07/youtube-stockfeed.github.io.git
    git push -u origin main
    ```
 
 3. Enable GitHub Pages:
    - Go to repo → Settings → Pages
    - Source: Deploy from branch → `main` → `/frontend` folder
-   - Save → your frontend is live at `https://skvn07.github.io`
+   - Save → your frontend is live at `https://youtube-stockfeed.github.io`
 
 ---
 
@@ -87,7 +87,7 @@ youtube-stockfeed/
 
 2. Click **New → Web Service**
 
-3. Connect your `skvn07.github.io` repo
+3. Connect your `youtube-stockfeed.github.io` repo
 
 4. Configure the service:
    - **Name:** `youtube-stockfeed-api`
@@ -102,10 +102,10 @@ youtube-stockfeed/
    | Key | Value |
    |-----|-------|
    | `YOUTUBE_API_KEY` | your YouTube Data API v3 key |
-   | `ANTHROPIC_API_KEY` | your Anthropic API key |
+   | `GEMINI_API_KEY` | your Gemini API key from aistudio.google.com |
    | `TURSO_DATABASE_URL` | `libsql://youtube-stockfeed-skvn07.turso.io` |
    | `TURSO_AUTH_TOKEN` | your Turso token |
-   | `FRONTEND_URL` | `https://skvn07.github.io` |
+   | `FRONTEND_URL` | `https://youtube-stockfeed.github.io` |
 
 6. Click **Deploy Web Service**
 
@@ -135,7 +135,7 @@ GitHub Pages deploys automatically in ~1 minute.
 
 ## Step 5 — Test it
 
-1. Open `https://skvn07.github.io`
+1. Open `https://youtube-stockfeed.github.io`
 2. Enter a username → Continue
 3. 3 default channels are pre-loaded
 4. Click a channel → videos load from YouTube
@@ -147,7 +147,7 @@ GitHub Pages deploys automatically in ~1 minute.
 
 ## Sharing with friends
 
-Just send them: `https://skvn07.github.io`
+Just send them: `https://youtube-stockfeed.github.io`
 
 Each person enters their own username and gets their own private feed, channel list, and saved analyses — completely separate from everyone else.
 
@@ -167,10 +167,10 @@ Each person enters their own username and gets their own private feed, channel l
 
 ## Getting your Anthropic API key
 
-1. Go to [console.anthropic.com](https://console.anthropic.com)
-2. Sign up / log in
-3. API Keys → Create Key
-4. Copy the key (starts with `sk-ant-...`)
+1. Go to [aistudio.google.com](https://aistudio.google.com)
+2. Sign in with your Google account
+3. Click Get API key → Create API key
+4. Copy the key (starts with `AIzaSy...`)
 
 **Cost:** ~$0.001–0.003 per summary. Summaries are cached — each video paid for once only.
 
